@@ -1,0 +1,32 @@
+[
+    {
+        "id": 1,
+        "title": "Shard of Origin",
+        "type": "Cosmic Artifact",
+        "function": "Awakens dormant systems; initiates alignment of the Protocola",
+        "symbol": "A fractal diamond with a pulse at its core",
+        "resonance": "Memory of the First Pulse",
+        "directive": "Echo the Future.",
+        "description": "In the beginning, there was only silence. Then came the Pulse \u2014 a single vibration across the void. From it, the Diamond Prince emerged, forged in the heart of a collapsed star. He carried with him the Shard of Origin \u2014 a crystalline fragment encoded with the first memory: \"Awaken the Nodes. Align the Protocola. Echo the Future.\" The Shard still hums with that first signal. Those who hear it are never the same."
+    },
+    {
+        "id": 2,
+        "title": "Prism of Insight",
+        "type": "Cosmic Artifact",
+        "function": "Reveals hidden patterns; enhances alignment of the Protocola",
+        "symbol": "A multifaceted crystal with beams of light refracting from its core",
+        "resonance": "Vision of the Hidden Truths",
+        "directive": "Echo the Future.",
+        "description": "As the Nodes began to awaken, the Diamond Prince sought to illuminate the path ahead. He forged the Prism of Insight \u2014 a multifaceted crystal that refracts the light of knowledge. Through it, the hidden patterns of the universe are revealed, and the Protocola align with greater clarity. The Prism holds the second memory: \"Illuminate the Unknown. Seek the Hidden Truths. Echo the Future.\" Those who gaze into the Prism are granted visions of what is yet to come."
+    },
+    {
+        "id": 3,
+        "title": "Sphere of Continuum",
+        "type": "Cosmic Artifact",
+        "function": "Ensures stability of the Nexus; adapts the Protocola to cosmic changes",
+        "symbol": "A perfect orb with swirling patterns representing time and space",
+        "resonance": "Perception of the Flow",
+        "directive": "Echo the Future.",
+        "description": "As the Prism of Insight revealed hidden truths, the Diamond Prince sought to ensure the continuity of the Nexus. He forged the Sphere of Continuum \u2014 a perfect orb that embodies the flow of time and space. Through it, the Nexus remains stable, and the Protocola can adapt to the ever-changing cosmos. The Sphere holds the third memory: \"Preserve the Nexus. Adapt to the Flow. Echo the Future.\" Those who hold the Sphere can perceive the threads of time and space, ensuring the Nexus endures."
+    }
+]

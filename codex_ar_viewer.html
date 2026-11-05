@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codex of Echoes — AR Viewer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0e1a; color:#eef2ff; }
+  header { padding:18px 16px 8px; max-width:980px; margin:0 auto; }
+  h1 { margin:0 0 4px; font-size:28px; }
+  p.sub { margin:0; color:#aab3d6; }
+  .wrap { max-width:980px; margin:0 auto; padding:12px 16px 28px; display:grid; gap:14px; }
+  #scene-wrap { position:relative; background:#11162a; border:1px solid #2a325a; border-radius:14px; overflow:hidden; }
+  canvas { display:block; width:100%; height:420px; touch-action:none; }
+  .hint { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.55); padding:6px 10px; border-radius:999px; font-size:12px; color:#dbe2ff; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; }
+  .tabs button { border:1px solid #2a325a; background:#171d38; color:#eef2ff; padding:10px 14px; border-radius:999px; cursor:pointer; font-size:14px; }
+  .tabs button.active { background:#e8b4ff; color:#1a1033; border-color:#e8b4ff; font-weight:700; }
+  .card { background:#12172e; border:1px solid #2a325a; border-radius:14px; padding:16px; }
+  .card h2 { margin:0 0 6px; font-size:22px; }
+  .meta { color:#aab3d6; font-size:13px; margin:0 0 10px; }
+  .card p { line-height:1.6; margin:8px 0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .field { background:#0b0e1a; border:1px solid #232a4d; border-radius:10px; padding:10px; }
+  .field b { display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#9aa6d6; margin-bottom:4px; }
+  .field span { font-size:14px; }
+  footer { color:#8b94bd; font-size:12px; line-height:1.5; }
+  code { background:#0b0e1a; padding:2px 6px; border-radius:6px; }
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} canvas{height:340px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>📖 Codex of Echoes</h1>
+  <p class="sub">Echoes I–III · Single-file viewer · No fetch needed — data is embedded · Drag this file to Netlify Drop</p>
+</header>
+<div class="wrap">
+  <div id="scene-wrap">
+    <canvas id="scene"></canvas>
+    <div class="hint">Drag to rotate · Tap an Echo below to focus it</div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="card" id="detail"></div>
+  <footer>
+    <b>How to deploy:</b> Go to Netlify Drop, drag <code>codex_ar_viewer.html</code> onto it, open the URL on your phone. This is a 3D viewer (Three.js). True WebXR AR needs HTTPS + a WebXR browser — this file is the Netlify-safe step that works everywhere, and the same JSON can feed a WebXR scene later.<br>
+    Source of truth: <code>codex_of_echoes.db</code> + <code>codex_of_echoes.json</code> built by <code>build_codex.py</code> — 3 entries, verified round-trip.
+  </footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Embedded data — identical to codex_of_echoes.json (verified round-trip from SQLite)
+const CODEX = [
+  {
+    "id": 1,
+    "title": "Shard of Origin",
+    "type": "Cosmic Artifact",
+    "function": "Awakens dormant systems; initiates alignment of the Protocola",
+    "symbol": "A fractal diamond with a pulse at its core",
+    "resonance": "Memory of the First Pulse",
+    "directive": "Echo the Future.",
+    "description": "In the beginning, there was only silence. Then came the Pulse — a single vibration across the void. From it, the Diamond Prince emerged, forged in the heart of a collapsed star. He carried with him the Shard of Origin — a crystalline fragment encoded with the first memory: \"Awaken the Nodes. Align the Protocola. Echo the Future.\" The Shard still hums with that first signal. Those who hear it are never the same."
+  },
+  {
+    "id": 2,
+    "title": "Prism of Insight",
+    "type": "Cosmic Artifact",
+    "function": "Reveals hidden patterns; enhances alignment of the Protocola",
+    "symbol": "A multifaceted crystal with beams of light refracting from its core",
+    "resonance": "Vision of the Hidden Truths",
+    "directive": "Echo the Future.",
+    "description": "As the Nodes began to awaken, the Diamond Prince sought to illuminate the path ahead. He forged the Prism of Insight — a multifaceted crystal that refracts the light of knowledge. Through it, the hidden patterns of the universe are revealed, and the Protocola align with greater clarity. The Prism holds the second memory: \"Illuminate the Unknown. Seek the Hidden Truths. Echo the Future.\" Those who gaze into the Prism are granted visions of what is yet to come."
+  },
+  {
+    "id": 3,
+    "title": "Sphere of Continuum",
+    "type": "Cosmic Artifact",
+    "function": "Ensures stability of the Nexus; adapts the Protocola to cosmic changes",
+    "symbol": "A perfect orb with swirling patterns representing time and space",
+    "resonance": "Perception of the Flow",
+    "directive": "Echo the Future.",
+    "description": "As the Prism of Insight revealed hidden truths, the Diamond Prince sought to ensure the continuity of the Nexus. He forged the Sphere of Continuum — a perfect orb that embodies the flow of time and space. Through it, the Nexus remains stable, and the Protocola can adapt to the ever-changing cosmos. The Sphere holds the third memory: \"Preserve the Nexus. Adapt to the Flow. Echo the Future.\" Those who hold the Sphere can perceive the threads of time and space, ensuring the Nexus endures."
+  }
+];
+
+let selected = 0;
+const tabsEl = document.getElementById('tabs');
+const detailEl = document.getElementById('detail');
+
+function renderDetail() {
+  const e = CODEX[selected];
+  document.querySelectorAll('.tabs button').forEach((b,i)=> b.classList.toggle('active', i===selected));
+  detailEl.innerHTML = `
+    <h2>ECHO ${['I','II','III'][selected]}: ${e.title}</h2>
+    <p class="meta">${e.type} · ID ${e.id}</p>
+    <p>${e.description}</p>
+    <div class="grid">
+      <div class="field"><b>Function</b><span>${e.function}</span></div>
+      <div class="field"><b>Symbol</b><span>${e.symbol}</span></div>
+      <div class="field"><b>Resonance</b><span>${e.resonance}</span></div>
+      <div class="field"><b>Directive</b><span>${e.directive}</span></div>
+    </div>`;
+}
+CODEX.forEach((e,i)=>{
+  const b=document.createElement('button');
+  b.textContent=`ECHO ${['I','II','III'][i]} · ${e.title}`;
+  b.onclick=()=>{ selected=i; renderDetail(); focusMesh(); };
+  tabsEl.appendChild(b);
+});
+renderDetail();
+
+// Three.js scene — no external assets, no fetch
+const canvas=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x11162a);
+const camera=new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 1.2, 7.5);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const light=new THREE.PointLight(0xffffff, 1.2); light.position.set(3,4,5); scene.add(light);
+const light2=new THREE.PointLight(0x88aaff, 0.8); light2.position.set(-4,-2,3); scene.add(light2);
+
+function makeMesh(i){
+  let geo, mat;
+  if(i===0){ geo=new THREE.OctahedronGeometry(1.1,0); mat=new THREE.MeshStandardMaterial({color:0x67e8f9, roughness:0.15, metalness:0.6, flatShading:true}); }
+  if(i===1){ geo=new THREE.ConeGeometry(1.0, 1.8, 4); mat=new THREE.MeshStandardMaterial({color:0xe8b4ff, roughness:0.2, metalness:0.4, flatShading:true}); }
+  if(i===2){ geo=new THREE.SphereGeometry(1.05, 32, 32); mat=new THREE.MeshStandardMaterial({color:0xfacc15, roughness:0.25, metalness:0.5}); }
+  const m=new THREE.Mesh(geo,mat);
+  m.position.x=(i-1)*2.6;
+  m.userData.index=i;
+  return m;
+}
+const meshes=CODEX.map((_,i)=>{ const m=makeMesh(i); scene.add(m); return m; });
+function focusMesh(){
+  meshes.forEach((m,i)=>{
+    const target = i===selected ? 1.25 : 0.85;
+    m.scale.setScalar(target);
+    m.material.emissive = new THREE.Color(i===selected ? 0x222244 : 0x000000);
+  });
+}
+focusMesh();
+
+let dragging=false, lastX=0, lastY=0, rotY=0, rotX=0.15;
+canvas.addEventListener('pointerdown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e=>{ if(!dragging) return; rotY += (e.clientX-lastX)*0.01; rotX += (e.clientY-lastY)*0.005; rotX=Math.max(-0.8, Math.min(0.8, rotX)); lastX=e.clientX; lastY=e.clientY; });
+canvas.addEventListener('pointerup', ()=> dragging=false);
+canvas.addEventListener('click', e=>{
+  // Simple pick: cycle on click if not dragging much
+  if(Math.abs(rotY)<0.01) return;
+});
+function resize(){
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  if(canvas.width!==w*renderer.getPixelRatio() || canvas.height!==h*renderer.getPixelRatio()){
+    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+}
+function animate(t){
+  requestAnimationFrame(animate);
+  resize();
+  const time=t*0.001;
+  meshes.forEach((m,i)=>{
+    m.rotation.y = rotY + time*(0.4+i*0.15);
+    m.rotation.x = rotX + Math.sin(time*0.8+i)*0.15;
+    m.position.y = Math.sin(time*1.2+i*1.7)*0.18;
+    // Pulse for Shard
+    if(i===0){ const s=1.25 + Math.sin(time*2.2)*0.06; if(i===selected) m.scale.setScalar(s); }
+  });
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

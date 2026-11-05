@@ -1,0 +1,7 @@
+{
+    "entries": 3,
+    "head_hash": "6ffafbe83939cd0e186812b4aa9574a53fb2df0e3f1b5a8cded2df0d6d59a24d",
+    "genesis_prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "json_sha256": "ab5435165dccdec1cb24897f4cba748a14982170316ba492893e124581fdb37c",
+    "note": "Verify with: python3 verify_codex.py. Publish json_sha256 + head_hash separately."
+}
